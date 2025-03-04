@@ -43,8 +43,8 @@ export const handlers = [
             // Data lainnya bisa lanjut disini...
           ],
           draw: 0,
-          recordsFiltered: 238,
-          recordsTotal: 238,
+          recordsFiltered: 40,
+          recordsTotal: 40,
           hasMore: true,
         },
       })

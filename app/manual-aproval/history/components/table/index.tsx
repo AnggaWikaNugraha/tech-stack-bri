@@ -2,11 +2,14 @@
 
 import { ManualHistoryApprovalCollectionParams } from '@/types/manualAprovalHistoryParams';
 import { usePathname, useRouter, useSearchParams } from 'next/navigation';
-import React, { useCallback, useState } from 'react'
+import React, { FunctionComponent, useCallback, useMemo, useState } from 'react'
 import { useHistoryApproval } from './hooks/useHistoryTable';
 import TableItem from './components/tableItem';
+import { FilterAction } from '@/types/filterAction';
+import Filter from '../filter';
+import Pagination from '@/components/paginations';
 
-const ManualHistoryTable = () => {
+const ManualHistoryTable: FunctionComponent = () => {
   const router = useRouter();
   const pathname = usePathname();
   const searchParams = useSearchParams();
@@ -16,6 +19,7 @@ const ManualHistoryTable = () => {
     limit: searchParams?.get("limit") ? Number(searchParams?.get("limit")) : 10,
   });
   const [invalidValidation, setInvalidValidation] = useState<boolean>(false);
+  const [action, setAction] = useState<FilterAction>("Filter");
 
   const updateQueryUrlParams = useCallback(
     (params: ManualHistoryApprovalCollectionParams) => {
@@ -60,8 +64,62 @@ const ManualHistoryTable = () => {
     },
   });
 
+  const submitFilter = (
+    newParams: ManualHistoryApprovalCollectionParams,
+    action: FilterAction,
+  ) => {
+    const updatedParams: ManualHistoryApprovalCollectionParams = {
+      ...newParams,
+      page: 1,
+      limit: 10,
+      startDate: newParams.startDate,
+      endDate: newParams.endDate,
+    };
+
+    setAction(action);
+    setInvalidValidation(false);
+    setParams(updatedParams);
+    updateQueryUrlParams(updatedParams);
+  };
+
+  const handlePagination = useCallback(
+		(event: {selected: number}) => {
+			const newParams: ManualHistoryApprovalCollectionParams = {
+				...params,
+				page: event.selected + 1,
+			};
+
+			setParams(newParams);
+			updateQueryUrlParams(newParams);
+		},
+		// eslint-disable-next-line react-hooks/exhaustive-deps
+		[params],
+	);
+
+	const pageCount = useMemo(() => {
+		const total = historyApproval.data?.data?.data?.recordsFiltered || 0;
+		return Math.ceil(total / 10);
+	}, [historyApproval.data?.data?.data?.recordsFiltered]);
+
+	const handleForward = useCallback(() => {
+		const newParams = {...params, page: pageCount};
+
+		setParams(newParams);
+		updateQueryUrlParams(newParams);
+		// eslint-disable-next-line react-hooks/exhaustive-deps
+	}, [pageCount, params]);
+
+	const handleBackward = useCallback(() => {
+		const newParams = {...params, page: 1};
+
+		setParams(newParams);
+		updateQueryUrlParams(newParams);
+		// eslint-disable-next-line react-hooks/exhaustive-deps
+	}, [params]);
+
   return (
     <>
+      <Filter onSubmit={submitFilter} params={params} />
       <div>Table</div>
       <div>
         {historyApproval.data?.data?.data?.data?.length !== 0 ? (
@@ -93,6 +151,15 @@ const ManualHistoryTable = () => {
           </div>
         )}
       </div>
+
+      <Pagination
+						page={params?.page}
+						pageCount={pageCount}
+						onPageChange={handlePagination}
+						forward={handleForward}
+						backward={handleBackward}
+					/>
+
     </>
   )
 }
